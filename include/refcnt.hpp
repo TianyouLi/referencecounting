@@ -5,7 +5,7 @@
 #include <optional>
 #include <type_traits>
 
-#include <stdio.h>
+#include <iostream>
 
 template <typename T>
   requires std::signed_integral<T>
@@ -16,8 +16,14 @@ class ReferenceCount {
   public:
     ReferenceCount() : _refcnt(REF_ONE) {
       static_assert(!std::is_same_v<REFCNT_T, ReferenceCount::InvalidReferenceCountType>);
-      printf("ONE: %016lX, ZERO: %016lX, MAX: %016lX, RELEASED: %016lX, REF_SATURATED: %016lX, REF_DEAD: %016lX\n", 
-        REF_ONE, REF_ZERO, REF_MAX, REF_RELEASED, REF_SATURATED, REF_DEAD);
+      std::cout << std::hex << std::uppercase << std::showbase << std::setw(sizeof(REFCNT_T)*2) << std::setfill('0');
+      std::cout << "REF_ONE: " << REF_ONE << std::endl;
+      std::cout << "REF_ZERO: " << REF_ZERO << std::endl;
+      std::cout << "REF_MAX: " << REF_MAX << std::endl;
+      std::cout << "REF_RELEASED: " << REF_RELEASED << std::endl;
+      std::cout << "REF_SATURATED: " << REF_SATURATED << std::endl;
+      std::cout << "REF_DEAD: " << REF_DEAD << std::endl;
+      std::cout << std::dec;
     }
 
   Status get() {
@@ -34,16 +40,16 @@ class ReferenceCount {
       _refcnt.store(REF_SATURATED);
       return Status::OVERFLOW;
     }
-    return Status::ALIVE;
+    return Status::UNEXPECTED;
   }
 
   Status put() {
     REFCNT_T cnt = _refcnt.fetch_add(-1, std::memory_order_relaxed) -1;
-    if ( cnt > (REFCNT_T)REF_ONE) {
+    if ( cnt >= (REFCNT_T)REF_ONE) {
       return Status::ALIVE;
     }
 
-    if ( (REFCNT_T_UNSIGNED)cnt == REF_ONE) {
+    if ( (REFCNT_T_UNSIGNED)cnt == REF_ZERO) {
       REFCNT_T expected = REF_ZERO;
       if (_refcnt.compare_exchange_weak(expected,REF_DEAD))
         return Status::NOREF;
