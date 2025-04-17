@@ -31,6 +31,7 @@ void thread_func(std::shared_ptr<ThreadCtx> ctx)
   for (unsigned long i = 0; i < ctx->nops; i++)
   {
     rc.get();
+    rc.put();
   }
 
   const auto end = std::chrono::high_resolution_clock::now();
