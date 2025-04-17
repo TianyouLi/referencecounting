@@ -21,7 +21,7 @@ class ReferenceCount {
     }
 
   Status get() {
-    REFCNT_T cnt = _refcnt.fetch_add(1, std::memory_order_relaxed);
+    REFCNT_T cnt = _refcnt.fetch_add(1, std::memory_order_relaxed) +1;
     if (cnt >= (REFCNT_T)REF_ONE) {
       return Status::ALIVE;
     }
@@ -38,7 +38,7 @@ class ReferenceCount {
   }
 
   Status put() {
-    REFCNT_T cnt = _refcnt.fetch_add(-1, std::memory_order_relaxed);
+    REFCNT_T cnt = _refcnt.fetch_add(-1, std::memory_order_relaxed) -1;
     if ( cnt > (REFCNT_T)REF_ONE) {
       return Status::ALIVE;
     }
@@ -72,12 +72,12 @@ class ReferenceCount {
             >::type>::type>::type; 
     using REFCNT_T_UNSIGNED = std::make_unsigned_t<REFCNT_T>;
   
-    static const REFCNT_T_UNSIGNED REF_ONE = 0;  
-    static const REFCNT_T_UNSIGNED REF_ZERO = static_cast<REFCNT_T_UNSIGNED>(-1);   
-    static const REFCNT_T_UNSIGNED REF_MAX = REF_ZERO >> 1;
-    static const REFCNT_T_UNSIGNED REF_RELEASED = REF_MAX + ((REF_ZERO - REF_MAX) >> 1);
-    static const REFCNT_T_UNSIGNED REF_SATURATED = REF_MAX + ((REF_RELEASED - REF_MAX) >> 1);
-    static const REFCNT_T_UNSIGNED REF_DEAD = REF_RELEASED + ((REF_ZERO - REF_RELEASED) >> 1);
+    static const REFCNT_T_UNSIGNED REF_ONE        = 0;  
+    static const REFCNT_T_UNSIGNED REF_MAX        = static_cast<REFCNT_T_UNSIGNED>(-1) >> 1;
+    static const REFCNT_T_UNSIGNED REF_SATURATED  = static_cast<REFCNT_T_UNSIGNED>(0xA0) << ((sizeof(REFCNT_T_UNSIGNED)-1)*8);
+    static const REFCNT_T_UNSIGNED REF_RELEASED   = static_cast<REFCNT_T_UNSIGNED>(0xC0) << ((sizeof(REFCNT_T_UNSIGNED)-1)*8);
+    static const REFCNT_T_UNSIGNED REF_DEAD       = static_cast<REFCNT_T_UNSIGNED>(0xE0) << ((sizeof(REFCNT_T_UNSIGNED)-1)*8);
+    static const REFCNT_T_UNSIGNED REF_ZERO       = static_cast<REFCNT_T_UNSIGNED>(-1);
 
     std::atomic<REFCNT_T> _refcnt;
 };
